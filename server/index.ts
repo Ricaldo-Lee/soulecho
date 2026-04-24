@@ -6,7 +6,6 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { createClient } from '@supabase/supabase-js';
-import { sendAliyunOtpSms } from './aliyunSms';
 import { normalizeChinaToE164 } from './phoneNormalize';
 import {
   createMagiclinkExchange,
@@ -42,11 +41,21 @@ app.use((req, _res, next) => {
   next();
 });
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { autoRefreshToken: false, persistSession: false } },
-);
+const hasSupabaseUrl = !!process.env.SUPABASE_URL?.trim();
+const hasServiceRoleKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+const supabaseUrl = process.env.SUPABASE_URL?.trim() || 'https://invalid.localhost';
+const supabaseServiceRoleKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || 'missing-service-role-key';
+
+if (!hasSupabaseUrl || !hasServiceRoleKey) {
+  console.error(
+    '[Config] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY. Vercel production env vars may be unset.',
+  );
+}
+
+const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
+  auth: { autoRefreshToken: false, persistSession: false },
+});
 
 /** 允许的前端 Origin（逗号分隔）。默认合并 localhost / 127.0.0.1，避免仅填 localhost 时用 127.0.0.1 打开页面导致 CORS 失败、前端只显示「发送失败」。 */
 function corsAllowedOrigins(): string[] {
@@ -127,6 +136,7 @@ const handleSendCode = async (req: express.Request, res: express.Response) => {
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
     // 先发送短信再写入 challenge，避免短信发送失败却覆盖旧验证码。
+    const { sendAliyunOtpSms } = await import('./aliyunSms');
     await sendAliyunOtpSms(e164, code);
 
     const { error: dbErr } = await supabase.from('phone_auth_challenges').upsert(
@@ -264,6 +274,14 @@ app.get('/api/health', (_req, res) => {
     time: new Date().toISOString(),
     ai,
     model: resolveAiModel(ai),
+    config: {
+      supabaseUrl: hasSupabaseUrl,
+      supabaseServiceRoleKey: hasServiceRoleKey,
+      deepseekApiKey: !!process.env.DEEPSEEK_API_KEY?.trim(),
+      aliyunAccessKeyId: !!process.env.ALIYUN_ACCESS_KEY_ID?.trim(),
+      aliyunAccessKeySecret: !!process.env.ALIYUN_ACCESS_KEY_SECRET?.trim(),
+      otpPepper: !!process.env.PHONE_OTP_PEPPER?.trim(),
+    },
   });
 });
 
