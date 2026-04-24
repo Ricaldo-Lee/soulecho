@@ -1,26 +1,25 @@
 /**
  * SoulEcho 灵音 — Backend Server
- * AI 流式接口（DeepSeek / Gemini）、Supabase 鉴权、阿里云短信 + 自定义手机 OTP 登录
+ * AI 流式接口（仅 DeepSeek）、Supabase 鉴权、阿里云短信 + 自定义手机 OTP 登录
  */
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { createClient } from '@supabase/supabase-js';
-import { normalizeChinaToE164 } from './phoneNormalize';
+import { normalizeChinaToE164 } from './phoneNormalize.js';
 import {
   createMagiclinkExchange,
   ensureAuthUserForPhone,
   hashPhoneOtp,
   randomOtp6,
   safeEqualHex,
-} from './phoneAuth';
+} from './phoneAuth.js';
 import {
   resolveAiProvider,
   resolveAiModel,
   streamDeepseekChat,
-  streamGeminiChat,
   type ChatMessage,
-} from './llm';
+} from './llm.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -136,7 +135,7 @@ const handleSendCode = async (req: express.Request, res: express.Response) => {
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
     // 先发送短信再写入 challenge，避免短信发送失败却覆盖旧验证码。
-    const { sendAliyunOtpSms } = await import('./aliyunSms');
+    const { sendAliyunOtpSms } = await import('./aliyunSms.js');
     await sendAliyunOtpSms(e164, code);
 
     const { error: dbErr } = await supabase.from('phone_auth_challenges').upsert(
@@ -235,35 +234,23 @@ async function requireAuth(
   next();
 }
 
-/** 对话类：同一套 prompt，按配置走 DeepSeek 或 Gemini */
+/** 对话类：固定走 DeepSeek */
 async function streamLlmChat(
   res: express.Response,
-  systemInstruction: string,
-  geminiContents: { role: 'user' | 'model'; parts: { text: string }[] }[],
   deepseekMessages: ChatMessage[],
 ): Promise<string> {
-  const provider = resolveAiProvider();
-  if (provider === 'deepseek') {
-    return streamDeepseekChat(res, deepseekMessages);
-  }
-  return streamGeminiChat(res, systemInstruction, geminiContents);
+  return streamDeepseekChat(res, deepseekMessages);
 }
 
-/** 解卦：system + 单条 user */
+/** 解卦：固定走 DeepSeek */
 async function streamLlmGuaci(
   res: express.Response,
   systemInstruction: string,
   userBlock: string,
 ): Promise<string> {
-  const provider = resolveAiProvider();
-  if (provider === 'deepseek') {
-    return streamDeepseekChat(res, [
-      { role: 'system', content: systemInstruction },
-      { role: 'user', content: userBlock },
-    ]);
-  }
-  return streamGeminiChat(res, systemInstruction, [
-    { role: 'user', parts: [{ text: userBlock }] },
+  return streamDeepseekChat(res, [
+    { role: 'system', content: systemInstruction },
+    { role: 'user', content: userBlock },
   ]);
 }
 
@@ -360,13 +347,6 @@ app.post('/api/chat', requireAuth, async (req: express.Request, res: express.Res
   }
 
   const systemInstruction = numerologySystemPrompt(birthProfile ?? null);
-  const contents = [
-    ...history.map((h) => ({
-      role: h.role === 'user' ? ('user' as const) : ('model' as const),
-      parts: [{ text: h.content }],
-    })),
-    { role: 'user' as const, parts: [{ text: prompt.trim() }] },
-  ];
   const deepseekMessages: ChatMessage[] = [
     { role: 'system', content: systemInstruction },
     ...history.map((h) => ({
@@ -383,7 +363,7 @@ app.post('/api/chat', requireAuth, async (req: express.Request, res: express.Res
 
   try {
     const fullText = await withTimeout(
-      streamLlmChat(res, systemInstruction, contents, deepseekMessages),
+      streamLlmChat(res, deepseekMessages),
       AI_STREAM_TIMEOUT_MS,
       'AI 对话',
     );
@@ -495,13 +475,6 @@ app.post('/api/chat/visitor', async (req: express.Request, res: express.Response
   }
 
   const systemInstruction = numerologySystemPrompt(birthProfile ?? null);
-  const contents = [
-    ...history.map((h) => ({
-      role: h.role === 'user' ? ('user' as const) : ('model' as const),
-      parts: [{ text: h.content }],
-    })),
-    { role: 'user' as const, parts: [{ text: prompt.trim() }] },
-  ];
   const deepseekMessages: ChatMessage[] = [
     { role: 'system', content: systemInstruction },
     ...history.map((h) => ({
@@ -518,7 +491,7 @@ app.post('/api/chat/visitor', async (req: express.Request, res: express.Response
 
   try {
     await withTimeout(
-      streamLlmChat(res, systemInstruction, contents, deepseekMessages),
+      streamLlmChat(res, deepseekMessages),
       AI_STREAM_TIMEOUT_MS,
       'AI 对话',
     );

@@ -1,23 +1,16 @@
 /**
- * 对话 / 解卦 流式输出：支持 DeepSeek（OpenAI 兼容）与 Gemini
+ * 对话 / 解卦 流式输出：仅使用 DeepSeek（OpenAI 兼容）
  */
 import type { Response } from 'express';
 
-export type AiProvider = 'deepseek' | 'gemini';
+export type AiProvider = 'deepseek';
 
 export function resolveAiProvider(): AiProvider {
-  const p = (process.env.AI_PROVIDER || '').toLowerCase().trim();
-  if (p === 'gemini') return 'gemini';
-  if (p === 'deepseek') return 'deepseek';
-  if (process.env.DEEPSEEK_API_KEY) return 'deepseek';
-  return 'gemini';
+  return 'deepseek';
 }
 
-export function resolveAiModel(provider: AiProvider = resolveAiProvider()): string {
-  if (provider === 'deepseek') {
-    return process.env.DEEPSEEK_MODEL || 'deepseek-chat';
-  }
-  return process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+export function resolveAiModel(_provider: AiProvider = resolveAiProvider()): string {
+  return process.env.DEEPSEEK_MODEL || 'deepseek-chat';
 }
 
 export type ChatMessage = {
@@ -84,40 +77,5 @@ export async function streamDeepseekChat(res: Response, messages: ChatMessage[])
     }
   }
 
-  return fullText;
-}
-
-type GeminiContent = {
-  role: 'user' | 'model';
-  parts: { text: string }[];
-};
-
-export async function streamGeminiChat(
-  res: Response,
-  systemInstruction: string,
-  contents: GeminiContent[],
-): Promise<string> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error('未配置 GEMINI_API_KEY');
-  }
-  const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
-  const { GoogleGenAI } = await import('@google/genai');
-  const genAI = new GoogleGenAI({ apiKey });
-
-  const stream = await genAI.models.generateContentStream({
-    model,
-    contents,
-    config: { systemInstruction },
-  });
-
-  let fullText = '';
-  for await (const chunk of stream) {
-    const text = chunk.text ?? '';
-    fullText += text;
-    if (text) {
-      res.write(`data: ${JSON.stringify({ chunk: text })}\n\n`);
-    }
-  }
   return fullText;
 }
