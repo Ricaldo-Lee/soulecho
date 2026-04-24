@@ -1,0 +1,152 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Noto Serif SC", "Noto Serif TC", ui-serif, serif;
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Large, periodic “breathing” drift (4 beats per cycle, ease-in-out ≈ smooth loop) */
+@keyframes celestial-drift {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: translate(0%, 0%) scale(1);
+  }
+  25% {
+    opacity: 0.82;
+    transform: translate(12%, -10%) scale(1.12);
+  }
+  50% {
+    opacity: 0.9;
+    transform: translate(8%, 14%) scale(1.22);
+  }
+  75% {
+    opacity: 0.74;
+    transform: translate(-14%, 6%) scale(1.1);
+  }
+}
+
+@keyframes celestial-drift-reverse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: translate(0%, 0%) scale(1.02);
+  }
+  25% {
+    opacity: 0.78;
+    transform: translate(-10%, 12%) scale(1.15);
+  }
+  50% {
+    opacity: 0.86;
+    transform: translate(14%, -8%) scale(1.2);
+  }
+  75% {
+    opacity: 0.68;
+    transform: translate(6%, -14%) scale(1.08);
+  }
+}
+
+@keyframes celestial-drift-center {
+  0%,
+  100% {
+    opacity: 0.42;
+    transform: translate(-50%, -50%) scale(1) translate(0%, 0%);
+  }
+  25% {
+    opacity: 0.72;
+    transform: translate(-50%, -50%) scale(1.08) translate(9%, -7%);
+  }
+  50% {
+    opacity: 0.8;
+    transform: translate(-50%, -50%) scale(1.16) translate(-5%, 11%);
+  }
+  75% {
+    opacity: 0.65;
+    transform: translate(-50%, -50%) scale(1.1) translate(7%, 5%);
+  }
+}
+
+/*
+ * Meteors: fixed 135° streak (horizontal bar points down-left), linear glide TR→BL,
+ * soft fade in/out — no scaleX pop.
+ */
+@keyframes meteor-glide-a {
+  0%,
+  72% {
+    opacity: 0;
+    transform: translate3d(8vw, -6vh, 0) rotate(135deg);
+  }
+  74% {
+    opacity: 0.55;
+  }
+  92% {
+    opacity: 0.45;
+    transform: translate3d(-72vw, 62vh, 0) rotate(135deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-82vw, 70vh, 0) rotate(135deg);
+  }
+}
+
+@keyframes meteor-glide-b {
+  0%,
+  58% {
+    opacity: 0;
+    transform: translate3d(4vw, 2vh, 0) rotate(135deg);
+  }
+  62% {
+    opacity: 0.5;
+  }
+  88% {
+    opacity: 0.38;
+    transform: translate3d(-68vw, 58vh, 0) rotate(135deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-78vw, 66vh, 0) rotate(135deg);
+  }
+}
+
+@keyframes meteor-glide-c {
+  0%,
+  81% {
+    opacity: 0;
+    transform: translate3d(14vw, -12vh, 0) rotate(135deg);
+  }
+  84% {
+    opacity: 0.48;
+  }
+  97% {
+    opacity: 0.32;
+    transform: translate3d(-64vw, 54vh, 0) rotate(135deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-70vw, 59vh, 0) rotate(135deg);
+  }
+}
+
+@keyframes star-twinkle {
+  0%,
+  100% {
+    opacity: 0.04;
+    transform: scale(0.92);
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+  45% {
+    opacity: 0.18;
+    transform: scale(1.03);
+    box-shadow: 0 0 4px 0 rgba(255, 255, 255, 0.12);
+  }
+  55% {
+    opacity: 0.28;
+    transform: scale(1.08);
+    box-shadow: 0 0 6px 1px rgba(255, 255, 255, 0.18);
+  }
+  70% {
+    opacity: 0.12;
+    transform: scale(1);
+    box-shadow: 0 0 2px 0 rgba(255, 255, 255, 0.08);
+  }
+}
