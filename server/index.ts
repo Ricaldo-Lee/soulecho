@@ -638,7 +638,11 @@ app.use((req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  const ai = resolveAiProvider();
-  console.log(`🌌 SoulEcho 灵音 Backend http://localhost:${PORT}  AI=${ai}(${resolveAiModel(ai)})`);
-});
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    const ai = resolveAiProvider();
+    console.log(`🌌 SoulEcho 灵音 Backend http://localhost:${PORT}  AI=${ai}(${resolveAiModel(ai)})`);
+  });
+}
+
+export default app;
