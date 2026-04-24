@@ -2,7 +2,6 @@
  * 对话 / 解卦 流式输出：支持 DeepSeek（OpenAI 兼容）与 Gemini
  */
 import type { Response } from 'express';
-import { GoogleGenAI } from '@google/genai';
 
 export type AiProvider = 'deepseek' | 'gemini';
 
@@ -103,6 +102,7 @@ export async function streamGeminiChat(
     throw new Error('未配置 GEMINI_API_KEY');
   }
   const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+  const { GoogleGenAI } = await import('@google/genai');
   const genAI = new GoogleGenAI({ apiKey });
 
   const stream = await genAI.models.generateContentStream({
